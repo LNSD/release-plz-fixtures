@@ -8,7 +8,9 @@ release = false             # Disable release-plz for the workspace
 [[package]]
 name = "lnsd-release-plz-fixture1"
 release = true          # Enable release-plz for the package
+publish = true          # Enable `cargo publish` for the package
 
 [[package]]
 name = "lnsd-release-plz-fixture2"
 release = true          # Enable release-plz for the package
+publish = true         # Disable `cargo publish` for the package
