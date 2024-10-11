@@ -1,0 +1,58 @@
+name: ci
+on:
+  workflow_dispatch:
+  pull_request:
+  push:
+    branches: [ main ]
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.head_ref || github.run_id }}
+  cancel-in-progress: true
+
+env:
+  FORCE_COLOR: true
+  CARGO_TERM_COLOR: always
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@692973e3d937129bcbf40652eb9f2f61becf3332 # v4
+
+      - uses: actions-rust-lang/setup-rust-toolchain@11df97af8e8102fd60b60a77dfbf58d40cd843b8 # v1
+        with:
+          components: clippy
+          cache: false
+
+      - name: Cache rust build files
+        uses: Leafwing-Studios/cargo-cache@5d5d363fa3b9886d45c4705228c5c73ccea17636 # v2
+
+      ## Check
+      - name: check (release)
+        run: cargo check --workspace --all-features --release
+
+      - name: clippy
+        run: cargo clippy --workspace --all-features -- -D warnings --force-warn deprecated --force-warn dead-code
+
+      ## Tests
+      - name: unit-tests
+        run: cargo test --workspace --all-features --lib
+
+      - name: doc-tests
+        run: cargo test --workspace --all-features --doc
+
+  format:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@692973e3d937129bcbf40652eb9f2f61becf3332 # v4
+
+      - name: Setup Rust toolchain
+        uses: actions-rust-lang/setup-rust-toolchain@11df97af8e8102fd60b60a77dfbf58d40cd843b8 # v1
+        with:
+          toolchain: nightly
+          components: rustfmt
+          cache: false
+
+      - run: cargo +nightly fmt --all -- --check

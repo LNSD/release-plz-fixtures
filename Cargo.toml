@@ -1,0 +1,6 @@
+[workspace]
+resolver = "2"
+members = [
+  "crates/release-plz-fixture1",
+  "crates/release-plz-fixture2",
+]

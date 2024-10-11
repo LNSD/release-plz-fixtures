@@ -1,0 +1,14 @@
+[workspace]
+git_release_enable = false  # Disable git release
+pr_labels = ["release"]     # Add the `release` label to the release Pull Request
+pr_draft = true             # Create release PR as a draft
+publish = false             # Disable `cargo publish` for the workspace
+release = false             # Disable release-plz for the workspace
+
+[[package]]
+name = "lnsd-release-plz-fixture1"
+release = true          # Enable release-plz for the package
+
+[[package]]
+name = "lnsd-release-plz-fixture2"
+release = true          # Enable release-plz for the package
