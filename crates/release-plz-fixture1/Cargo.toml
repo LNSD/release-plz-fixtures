@@ -2,7 +2,7 @@
 name = "lnsd-release-plz-fixture1"
 description = "A fixture for testing release-plz GitHub action"
 license = "MIT"
-version = "0.1.2"
+version = "0.2.0"
 edition = "2021"
 
 [dependencies]
