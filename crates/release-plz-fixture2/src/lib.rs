@@ -1,3 +1,7 @@
+#[deprecated(
+    since = "0.1.0",
+    note = "It will be removed in the next major release."
+)]
 pub fn add(left: u64, right: u64) -> u64 {
     left + right
 }
@@ -7,13 +11,36 @@ pub fn greet_es(name: &str) -> String {
     format!("¡Hola, {}!", name)
 }
 
+/// Greets the given name in French.
+pub fn greet_fr(name: &str) -> String {
+    format!("Bonjour, {}!", name)
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
 
     #[test]
-    fn it_works() {
-        let result = add(2, 2);
-        assert_eq!(result, 4);
+    fn test_greet_es() {
+        //* Given
+        let name = "Alice";
+
+        //* When
+        let result = greet_es(name);
+
+        //* Then
+        assert_eq!(result, "¡Hola, Alice!");
+    }
+
+    #[test]
+    fn test_greet_fr() {
+        //* Given
+        let name = "Alice";
+
+        //* When
+        let result = greet_fr(name);
+
+        //* Then
+        assert_eq!(result, "Bonjour, Alice!");
     }
 }
