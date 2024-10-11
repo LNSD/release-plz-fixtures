@@ -7,6 +7,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.1.2](https://github.com/LNSD/release-plz-fixtures/compare/lnsd-release-plz-fixture1-v0.1.1...lnsd-release-plz-fixture1-v0.1.2) - 2024-10-11
+
+### Added
+
+- *(lnsd-release-plz-fixture1)* add a new function to API (nl) ([#12](https://github.com/LNSD/release-plz-fixtures/pull/12))
+
 ## [0.1.1](https://github.com/LNSD/release-plz-fixtures/compare/lnsd-release-plz-fixture1-v0.1.0...lnsd-release-plz-fixture1-v0.1.1) - 2024-10-11
 
 ### Added
