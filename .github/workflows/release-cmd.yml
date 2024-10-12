@@ -1,0 +1,125 @@
+name: release-cmd
+on:
+  issue_comment: # Trigger on issue comments
+    types: [ created ]
+
+jobs:
+  # Run the `/release-plz set-version <semver>` command only on PRs with
+  # branch names matching `^release-plz-*`
+  release-set-verison:
+    runs-on: ubuntu-latest
+    if: ${{ github.event.issue.pull_request && startsWith(github.event.issue.head.ref, 'release-plz-') }}
+    steps:
+      # Check the comment author's repository permissions.
+      # Only users with `admin` and `write` permissions can run the `/release-plz set-version` command.
+      # If the user does not have the required permissions, the workflow mark the workflow as failed
+      # See: https://docs.github.com/en/rest/collaborators/collaborators?apiVersion=2022-11-28#get-repository-permissions-for-a-user
+      - name: Check comment author's permissions
+        id: check-author-permissions
+        uses: actions/github-script@v3
+        with:
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+          script: |
+            const comment_author = context.payload.comment.user.login;
+            const permissions = await github.repos.getCollaboratorPermissionLevel({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              username: comment_author
+            });
+
+            if ['admin', 'write'].includes(permissions.data.permission) {
+              core.setOutput('permissions', permissions.data.permission);
+            } else {
+              core.setFailed(`@${comment_author} does not have the required permissions to run this command`);
+            }
+
+      # Check the comment content for the `/release-plz set-version <semver>` command.
+      # For the comment content to be considered valid it MUST match the following requirements:
+      #  - A comment can contain more text (optional).
+      #  - The `/release-plz set-version` command MUST be in a single line.
+      # If a valid command invocation is found, set a `+1` emoji reaction to the comment and
+      # return the version argument for the next steps to use.
+      # Otherwise, the rest of the workflow job must be skipped.
+      - name: Validate for release-plz set-version workflow command
+        if: ${{ contains(fromJson('["admin", "write"]'), steps.check-author-permissions.outputs.permissions) }}
+        id: release-plz-set-version-cmd
+        uses: actions/github-script@v3
+        with:
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+          script: |
+            const comment_body = context.payload.comment.body;
+            const command = comment_body.match(/\/release-plz\s+set-version\s+(.+)$/);
+
+            if (command) {
+              // Return the version argument
+              core.setOutput('version', command[1]);
+
+              // Add a +1 reaction to the comment
+              github.reactions.createForIssueComment({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                comment_id: context.payload.comment.id,
+                content: '+1'
+              });
+            } else {
+              core.warning('No valid command found in the comment');
+            }
+
+      # Run the `/release-plz set-version <semver>` command
+      - name: Checkout repository
+        if: ${{ contains(fromJson('["admin", "write"]'), steps.check-author-permissions.outputs.permissions)  && steps.release-plz-set-version-cmd.outputs.version }}
+        uses: actions/checkout@eef61447b9ff4aafe5dcd4e0bbf5d482be7e7871 # v4
+        with:
+          fetch-depth: 0
+
+      - name: Install Rust toolchain
+        if: ${{ contains(fromJson('["admin", "write"]'), steps.check-author-permissions.outputs.permissions)  && steps.release-plz-set-version-cmd.outputs.version }}
+        uses: actions-rust-lang/setup-rust-toolchain@11df97af8e8102fd60b60a77dfbf58d40cd843b8 # v1
+
+      # release-plz-action
+      - name: Install release-plz binary
+        if: ${{ contains(fromJson('["admin", "write"]'), steps.check-author-permissions.outputs.permissions)  && steps.release-plz-set-version-cmd.outputs.version }}
+        uses: baptiste0928/cargo-install@904927dbe77864e0f2281519fe9d5bd097a220b3 # v3
+        with:
+          crate: release-plz
+          version: 0.3.98
+
+      - name: Configure git user from GitHub token
+        if: ${{ contains(fromJson('["admin", "write"]'), steps.check-author-permissions.outputs.permissions)  && steps.release-plz-set-version-cmd.outputs.version }}
+        uses: MarcoIeni/git-config@v0.1
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Run release-plz set-version command
+        if: ${{ contains(fromJson('["admin", "write"]'), steps.check-author-permissions.outputs.permissions)  && steps.release-plz-set-version-cmd.outputs.version }}
+        id: release-plz
+        shell: bash
+        run: |
+          INPUTS_CONFIG_PATH="./.github/release-plz.toml"
+          if [[ -n "$INPUTS_CONFIG_PATH" ]]
+          then
+              echo "using config from \'$INPUTS_CONFIG_PATH\'"
+              # Use arrays so that inputs can contain spaces
+              CONFIG_PATH=("--config" \"$INPUTS_CONFIG_PATH\'")
+          else
+              CONFIG_PATH=()
+          fi
+
+          INPUTS_MANIFEST_PATH=""
+          if [[ -n "$INPUTS_MANIFEST_PATH" ]]
+          then
+              echo "using manifest path \'$INPUTS_MANIFEST_PATH\'"
+              MANIFEST_PATH=("--manifest-path" "$INPUTS_MANIFEST_PATH")
+          else
+              MANIFEST_PATH=()
+          fi
+
+          echo "-- Running release-plz set-version --"
+          set_version_output=$(release-plz set-version\
+              "${CONFIG_PATH[@]}"\
+              "${MANIFEST_PATH[@]}"\
+              ${{ steps.release-plz-set-version-cmd.outputs.version }})
+          echo "set_version_output: $release_pr_output"
+
+      # TODO: Add step to commit the new version to the repository
+      # TODO: Add step to update the PR title and description with the new version
