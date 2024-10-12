@@ -58,12 +58,13 @@ jobs:
               core.setOutput('version', command[1]);
 
               // Add a +1 reaction to the comment
-              github.reactions.createForIssueComment({
-                owner: context.repo.owner,
-                repo: context.repo.repo,
-                comment_id: context.payload.comment.id,
+              core.debug(`Acknowledging comment with ID: ${inputs.comment.id}`)
+              await github.rest.reactions.createForIssueComment({
+                owner: github.context.repo.owner,
+                repo: github.context.repo.repo,
+                comment_id: inputs.comment.id,
                 content: '+1'
-              });
+              })
             } else {
               core.warning('No valid command found in the comment');
             }
