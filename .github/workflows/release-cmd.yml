@@ -28,8 +28,9 @@ jobs:
 
             if (['admin', 'write'].includes(permissions.data.permission)) {
               core.setOutput('permissions', permissions.data.permission);
+              core.info(`@${comment_author} has the required permissions to run this command (${permissions.data.permission})`);
             } else {
-              core.setFailed(`@${comment_author} does not have the required permissions to run this command`);
+              core.setFailed(`@${comment_author} does not have the required permissions to run this command (${permissions.data.permission})`);
             }
 
       # Check the comment content for the `/release-plz set-version <semver>` command.
