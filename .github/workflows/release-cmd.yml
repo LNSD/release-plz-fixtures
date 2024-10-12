@@ -4,12 +4,10 @@ on:
     types: [ created ]
 
 jobs:
-  # Run the `/release-plz set-version <semver>` command only on PRs with
-  # branch names matching `^release-plz-*`
+  # Run the `/release-plz set-version <semver>` command only on PRs with branch names matching `^release-plz-*`
   release-set-version:
     runs-on: ubuntu-latest
-    # if: ${{ github.event.issue.pull_request && startsWith(github.event.issue.head.ref, 'release-plz-') }}
-    if: ${{ github.event.issue.pull_request }}
+    if: ${{ github.event.issue.pull_request && startsWith(github.event.issue.pull_request.head.ref, 'release-plz-') }}
     steps:
       # Check the comment author's repository permissions.
       # Only users with `admin` and `write` permissions can run the `/release-plz set-version` command.
@@ -28,7 +26,7 @@ jobs:
               username: comment_author
             });
 
-            if ['admin', 'write'].includes(permissions.data.permission) {
+            if (['admin', 'write'].includes(permissions.data.permission)) {
               core.setOutput('permissions', permissions.data.permission);
             } else {
               core.setFailed(`@${comment_author} does not have the required permissions to run this command`);
