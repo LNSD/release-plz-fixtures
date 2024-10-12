@@ -19,9 +19,6 @@ jobs:
         with:
           github-token: ${{ secrets.GITHUB_TOKEN }}
           script: |
-            // Print branch name
-            core.info(`Branch name: ${context.payload.issue.pull_request.head.ref}`);
-
             const comment_author = context.payload.comment.user.login;
             const permissions = await github.repos.getCollaboratorPermissionLevel({
               owner: context.repo.owner,
