@@ -51,7 +51,10 @@ jobs:
             const command = comment_body.match(/\/release-plz\s+set-version\s+(.+)$/);
 
             if (command) {
-              // Return the version argument
+              core.info(`Found a valid command: ${command[0]}`);
+              core.info(`Version: ${command[1]}`);
+
+              // Set the version output for the next steps
               core.setOutput('version', command[1]);
 
               // Add a +1 reaction to the comment
