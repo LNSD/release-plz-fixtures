@@ -62,7 +62,7 @@ jobs:
               await github.rest.reactions.createForIssueComment({
                 owner: github.context.repo.owner,
                 repo: github.context.repo.repo,
-                comment_id: inputs.comment.id,
+                comment_id: github.context.payload.comment.id,
                 content: '+1'
               })
             } else {
