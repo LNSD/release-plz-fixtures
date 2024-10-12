@@ -6,9 +6,10 @@ on:
 jobs:
   # Run the `/release-plz set-version <semver>` command only on PRs with
   # branch names matching `^release-plz-*`
-  release-set-verison:
+  release-set-version:
     runs-on: ubuntu-latest
-    if: ${{ github.event.issue.pull_request && startsWith(github.event.issue.head.ref, 'release-plz-') }}
+    # if: ${{ github.event.issue.pull_request && startsWith(github.event.issue.head.ref, 'release-plz-') }}
+    if: ${{ github.event.issue.pull_request }}
     steps:
       # Check the comment author's repository permissions.
       # Only users with `admin` and `write` permissions can run the `/release-plz set-version` command.
