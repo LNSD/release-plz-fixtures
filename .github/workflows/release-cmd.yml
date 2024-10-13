@@ -1,6 +1,6 @@
 name: release-cmd
 on:
-  issue_comment: # Trigger on issue comments
+  issue_comment:
     types: [ created ]
 
 jobs:
@@ -9,28 +9,63 @@ jobs:
     runs-on: ubuntu-latest
     if: ${{ github.event.issue.pull_request }}
     steps:
-      # Check the comment author's repository permissions.
-      # Only users with `admin` and `write` permissions can run the `/release-plz set-version` command.
-      # If the user does not have the required permissions, the workflow mark the workflow as failed
-      # See: https://docs.github.com/en/rest/collaborators/collaborators?apiVersion=2022-11-28#get-repository-permissions-for-a-user
-      - name: Check comment author's permissions
-        id: check-author-permissions
-        uses: actions/github-script@v3
+      # Fetch the event details:
+      # 1. Check the comment author's repository permissions.
+      #    Only users with `admin` and `write` permissions can run the `/release-plz set-version` command.
+      #    If the user does not have the required permissions, the workflow mark the workflow as failed
+      #    See: https://docs.github.com/en/rest/collaborators/collaborators?apiVersion=2022-11-28#get-repository-permissions-for-a-user
+      # 2. Get the PR details from the event details (e.g., PR number, title, description, etc.)
+      #    See: https://github.com/actions/checkout/issues/331#issuecomment-707103442
+      - name: Fetch event details
+        id: event-details
+        uses: actions/github-script@60a0d83039c74a4aee543508d2ffcb1c3799cdea # v7
         with:
           github-token: ${{ secrets.RPLZ_GITHUB_PAT }}
           script: |
-            const comment_author = context.payload.comment.user.login;
-            const permissions = await github.repos.getCollaboratorPermissionLevel({
-              owner: context.repo.owner,
-              repo: context.repo.repo,
-              username: comment_author
-            });
+            // Check the comment author's permissions
+            try {
+              const comment_author = context.payload.comment.user.login;
+              const permissions = await github.repos.getCollaboratorPermissionLevel({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                username: comment_author
+              });
 
-            if (['admin', 'write'].includes(permissions.data.permission)) {
-              core.setOutput('permissions', permissions.data.permission);
-              core.info(`@${comment_author} has the required permissions to run this command (${permissions.data.permission})`);
-            } else {
-              core.setFailed(`@${comment_author} does not have the required permissions to run this command (${permissions.data.permission})`);
+              if (['admin', 'write'].includes(permissions.data.permission)) {
+                core.debug(`Author permissions: ${permissions.data.permission}`);
+                core.setOutput('author_permissions', permissions.data.permission);
+
+                core.info(`@${comment_author} has the required permissions to run this command (${permissions.data.permission})`);
+              } else {
+                core.setFailed(`@${comment_author} does not have the required permissions to run this command (${permissions.data.permission})`);
+              }
+            } catch (err) {
+              core.setFailed(`Failed to get the user's permissions with error: ${err}`);
+            }
+
+            // Get the PR details (e.g., PR number, branch namen,  title, description, etc.)
+            try {
+              const pr_number = context.payload.issue.number;
+
+              core.info(`Getting PR #${pr_number} from ${context.repo.owner}/${context.repo.repo}`);
+              const pull_request = await github.pulls.get({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                pull_number: pr_number
+              });
+
+              // Set the PR details output for the next steps
+              chore.debug(`PR details: ${JSON.stringify(pull_request.data)}`);
+              core.setOutput('pull_request', pull_request.data);
+
+              // Check if the PR branch name matches the required pattern
+              if (/^release-plz-/.test(pull_request.data.head.ref)) {
+                  core.info(`PR branch name '${pull_request.data.head.ref}'`);
+              } else {
+                  core.setFailed(`Branch name '${pull_request.data.head.ref}' does not match the required pattern '^release-plz-*'`);
+              }
+            } catch (err) {
+              core.setFailed(`Failed to get the PR details with error: ${err}`);
             }
 
       # Check the comment content for the `/release-plz set-version <semver>` command.
@@ -41,9 +76,8 @@ jobs:
       # return the version argument for the next steps to use.
       # Otherwise, the rest of the workflow job must be skipped.
       - name: Validate for release-plz set-version workflow command
-        if: ${{ contains(fromJson('["admin", "write"]'), steps.check-author-permissions.outputs.permissions) }}
         id: release-plz-set-version-cmd
-        uses: actions/github-script@v3
+        uses: actions/github-script@60a0d83039c74a4aee543508d2ffcb1c3799cdea # v7
         with:
           github-token: ${{ secrets.RPLZ_GITHUB_PAT }}
           script: |
@@ -71,31 +105,32 @@ jobs:
 
       # Run the `/release-plz set-version <semver>` command
       - name: Checkout repository
-        if: ${{ contains(fromJson('["admin", "write"]'), steps.check-author-permissions.outputs.permissions)  && steps.release-plz-set-version-cmd.outputs.version }}
+        if: ${{ contains(fromJson('["admin", "write"]'), steps.event-details.outputs.author_permissions)  && steps.release-plz-set-version-cmd.outputs.version }}
         uses: actions/checkout@eef61447b9ff4aafe5dcd4e0bbf5d482be7e7871 # v4
         with:
           fetch-depth: 0
+          ref: ${{ steps.event-details.outputs.pull_request.head.ref }}  # Checkout the PR branch
 
       - name: Install Rust toolchain
-        if: ${{ contains(fromJson('["admin", "write"]'), steps.check-author-permissions.outputs.permissions)  && steps.release-plz-set-version-cmd.outputs.version }}
+        if: ${{ contains(fromJson('["admin", "write"]'), steps.event-details.outputs.author_permissions)  && steps.release-plz-set-version-cmd.outputs.version }}
         uses: actions-rust-lang/setup-rust-toolchain@11df97af8e8102fd60b60a77dfbf58d40cd843b8 # v1
 
       # release-plz-action
       - name: Install release-plz binary
-        if: ${{ contains(fromJson('["admin", "write"]'), steps.check-author-permissions.outputs.permissions)  && steps.release-plz-set-version-cmd.outputs.version }}
+        if: ${{ contains(fromJson('["admin", "write"]'), steps.event-details.outputs.author_permissions)  && steps.release-plz-set-version-cmd.outputs.version }}
         uses: baptiste0928/cargo-install@904927dbe77864e0f2281519fe9d5bd097a220b3 # v3
         with:
           crate: release-plz
           version: 0.3.98
 
       - name: Configure git user from GitHub token
-        if: ${{ contains(fromJson('["admin", "write"]'), steps.check-author-permissions.outputs.permissions)  && steps.release-plz-set-version-cmd.outputs.version }}
-        uses: MarcoIeni/git-config@v0.1
+        if: ${{ contains(fromJson('["admin", "write"]'), steps.event-details.outputs.author_permissions)  && steps.release-plz-set-version-cmd.outputs.version }}
+        uses: MarcoIeni/git-config@59144859caf016f8b817a2ac9b051578729173c4 # v0.1
         env:
           GITHUB_TOKEN: ${{ secrets.RPLZ_GITHUB_PAT }}
 
       - name: Run release-plz set-version command
-        if: ${{ contains(fromJson('["admin", "write"]'), steps.check-author-permissions.outputs.permissions)  && steps.release-plz-set-version-cmd.outputs.version }}
+        if: ${{ contains(fromJson('["admin", "write"]'), steps.event-details.outputs.author_permissions)  && steps.release-plz-set-version-cmd.outputs.version }}
         id: release-plz
         shell: bash
         run: |
