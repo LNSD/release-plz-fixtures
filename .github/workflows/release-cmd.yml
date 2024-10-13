@@ -163,5 +163,17 @@ jobs:
               ${{ steps.cmd-release-plz-set-version.outputs.version }})
           echo "set_version_output: $set_version_output"
 
-      # TODO: Add step to commit the new version to the repository
+      # Commit the new version to the repository
+      - name: Commit the new version
+        if: ${{ steps.cmd-release-plz-set-version.outputs.version }}
+        id: commit-version
+        run: |
+          echo "Committing the new version '${{ steps.cmd-release-plz-set-version.outputs.version }}' to the repository"
+          echo "::debug:: Changed files:\n$(git status --porcelain)"
+          git add .
+          git commit --gpg-sign --message="chore: release"
+
+          echo "Updating the release commit"
+          git push origin ${{ steps.event-details.outputs.pull_request.head.ref }} --force
+
       # TODO: Add step to update the PR title and description with the new version
