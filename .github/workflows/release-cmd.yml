@@ -25,7 +25,7 @@ jobs:
             // Check the comment author's permissions
             try {
               const comment_author = context.payload.comment.user.login;
-              const permissions = await github.repos.getCollaboratorPermissionLevel({
+              const permissions = await github.rest.repos.getCollaboratorPermissionLevel({
                 owner: context.repo.owner,
                 repo: context.repo.repo,
                 username: comment_author
@@ -48,7 +48,7 @@ jobs:
               const pr_number = context.payload.issue.number;
 
               core.info(`Getting PR #${pr_number} from ${context.repo.owner}/${context.repo.repo}`);
-              const pull_request = await github.pulls.get({
+              const pull_request = await github.rest.pulls.get({
                 owner: context.repo.owner,
                 repo: context.repo.repo,
                 pull_number: pr_number
@@ -76,7 +76,7 @@ jobs:
       # return the version argument for the next steps to use.
       # Otherwise, the rest of the workflow job must be skipped.
       - name: Validate for release-plz set-version workflow command
-        id: release-plz-set-version-cmd
+        id: cmd-release-plz-set-version
         uses: actions/github-script@60a0d83039c74a4aee543508d2ffcb1c3799cdea # v7
         with:
           github-token: ${{ secrets.RPLZ_GITHUB_PAT }}
@@ -93,7 +93,7 @@ jobs:
 
               // Add a +1 reaction to the comment
               core.debug(`Acknowledging comment with ID: ${context.payload.comment.id}`);
-              await github.reactions.createForIssueComment({
+              await github.rest.reactions.createForIssueComment({
                 owner: context.repo.owner,
                 repo: context.repo.repo,
                 comment_id: context.payload.comment.id,
@@ -103,34 +103,34 @@ jobs:
               core.warning('No valid command found in the comment');
             }
 
-      # Run the `/release-plz set-version <semver>` command
-      - name: Checkout repository
-        if: ${{ contains(fromJson('["admin", "write"]'), steps.event-details.outputs.author_permissions)  && steps.release-plz-set-version-cmd.outputs.version }}
+      # Run the `/release-plz set-version <version>` command
+      - name: Checkout PR branch
+        if: ${{ steps.cmd-release-plz-set-version.outputs.version }}
         uses: actions/checkout@eef61447b9ff4aafe5dcd4e0bbf5d482be7e7871 # v4
         with:
           fetch-depth: 0
           ref: ${{ steps.event-details.outputs.pull_request.head.ref }}  # Checkout the PR branch
 
       - name: Install Rust toolchain
-        if: ${{ contains(fromJson('["admin", "write"]'), steps.event-details.outputs.author_permissions)  && steps.release-plz-set-version-cmd.outputs.version }}
+        if: ${{ steps.cmd-release-plz-set-version.outputs.version }}
         uses: actions-rust-lang/setup-rust-toolchain@11df97af8e8102fd60b60a77dfbf58d40cd843b8 # v1
 
       # release-plz-action
       - name: Install release-plz binary
-        if: ${{ contains(fromJson('["admin", "write"]'), steps.event-details.outputs.author_permissions)  && steps.release-plz-set-version-cmd.outputs.version }}
+        if: ${{ steps.cmd-release-plz-set-version.outputs.version }}
         uses: baptiste0928/cargo-install@904927dbe77864e0f2281519fe9d5bd097a220b3 # v3
         with:
           crate: release-plz
           version: 0.3.98
 
-      - name: Configure git user from GitHub token
-        if: ${{ contains(fromJson('["admin", "write"]'), steps.event-details.outputs.author_permissions)  && steps.release-plz-set-version-cmd.outputs.version }}
+      - name: Configure git user from GitHub tokesemvern
+        if: ${{ steps.cmd-release-plz-set-version.outputs.version }}
         uses: MarcoIeni/git-config@59144859caf016f8b817a2ac9b051578729173c4 # v0.1
         env:
           GITHUB_TOKEN: ${{ secrets.RPLZ_GITHUB_PAT }}
 
       - name: Run release-plz set-version command
-        if: ${{ contains(fromJson('["admin", "write"]'), steps.event-details.outputs.author_permissions)  && steps.release-plz-set-version-cmd.outputs.version }}
+        if: ${{ steps.cmd-release-plz-set-version.outputs.version }}
         id: release-plz
         shell: bash
         run: |
@@ -157,7 +157,7 @@ jobs:
           set_version_output=$(release-plz set-version\
               "${CONFIG_PATH[@]}"\
               "${MANIFEST_PATH[@]}"\
-              ${{ steps.release-plz-set-version-cmd.outputs.version }})
+              ${{ steps.cmd-release-plz-set-version.outputs.version }})
           echo "set_version_output: $release_pr_output"
 
       # TODO: Add step to commit the new version to the repository
