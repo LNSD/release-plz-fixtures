@@ -138,8 +138,9 @@ jobs:
           if [[ -n "$INPUTS_CONFIG_PATH" ]]
           then
               echo "using config from \'$INPUTS_CONFIG_PATH\'"
+
               # Use arrays so that inputs can contain spaces
-              CONFIG_PATH=("--config" \"$INPUTS_CONFIG_PATH\'")
+              CONFIG_PATH=("--config" "$INPUTS_CONFIG_PATH")
           else
               CONFIG_PATH=()
           fi
@@ -148,17 +149,19 @@ jobs:
           if [[ -n "$INPUTS_MANIFEST_PATH" ]]
           then
               echo "using manifest path \'$INPUTS_MANIFEST_PATH\'"
+
+              # Use arrays so that inputs can contain spaces
               MANIFEST_PATH=("--manifest-path" "$INPUTS_MANIFEST_PATH")
           else
               MANIFEST_PATH=()
           fi
 
-          echo "-- Running release-plz set-version --"
+          echo "-- Running release-plz set-version command --"
           set_version_output=$(release-plz set-version\
               "${CONFIG_PATH[@]}"\
               "${MANIFEST_PATH[@]}"\
               ${{ steps.cmd-release-plz-set-version.outputs.version }})
-          echo "set_version_output: $release_pr_output"
+          echo "set_version_output: $set_version_output"
 
       # TODO: Add step to commit the new version to the repository
       # TODO: Add step to update the PR title and description with the new version
