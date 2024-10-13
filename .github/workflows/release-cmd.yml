@@ -17,7 +17,7 @@ jobs:
         id: check-author-permissions
         uses: actions/github-script@v3
         with:
-          github-token: ${{ secrets.RPLZ_GITHUB_TOKEN }}
+          github-token: ${{ secrets.RPLZ_GITHUB_PAT }}
           script: |
             const comment_author = context.payload.comment.user.login;
             const permissions = await github.repos.getCollaboratorPermissionLevel({
@@ -45,7 +45,7 @@ jobs:
         id: release-plz-set-version-cmd
         uses: actions/github-script@v3
         with:
-          github-token: ${{ secrets.RPLZ_GITHUB_TOKEN }}
+          github-token: ${{ secrets.RPLZ_GITHUB_PAT }}
           script: |
             const comment_body = context.payload.comment.body;
             const command = comment_body.match(/\/release-plz\s+set-version\s+(.+)$/);
@@ -92,7 +92,7 @@ jobs:
         if: ${{ contains(fromJson('["admin", "write"]'), steps.check-author-permissions.outputs.permissions)  && steps.release-plz-set-version-cmd.outputs.version }}
         uses: MarcoIeni/git-config@v0.1
         env:
-          GITHUB_TOKEN: ${{ secrets.RPLZ_GITHUB_TOKEN }}
+          GITHUB_TOKEN: ${{ secrets.RPLZ_GITHUB_PAT }}
 
       - name: Run release-plz set-version command
         if: ${{ contains(fromJson('["admin", "write"]'), steps.check-author-permissions.outputs.permissions)  && steps.release-plz-set-version-cmd.outputs.version }}
