@@ -164,6 +164,7 @@ jobs:
           echo "set_version_output: $set_version_output"
 
       # Commit the new version to the repository
+      # TODO: Singn the new commit via the GitHub REST API
       - name: Commit the new version
         if: ${{ steps.cmd-release-plz-set-version.outputs.version }}
         id: commit-version
@@ -171,7 +172,7 @@ jobs:
           echo "Committing the new version '${{ steps.cmd-release-plz-set-version.outputs.version }}' to the repository"
           echo "::debug:: Changed files:\n$(git status --porcelain)"
           git add .
-          git commit --gpg-sign --message="chore: release"
+          git commit --message="chore: release"
 
           echo "Updating the release commit"
           git push origin ${{ steps.event-details.outputs.pull_request.head.ref }} --force
