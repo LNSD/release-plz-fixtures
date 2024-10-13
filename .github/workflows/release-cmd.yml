@@ -55,7 +55,7 @@ jobs:
               });
 
               // Set the PR details output for the next steps
-              chore.debug(`PR details: ${JSON.stringify(pull_request.data)}`);
+              core.debug(`PR details: ${JSON.stringify(pull_request.data)}`);
               core.setOutput('pull_request', pull_request.data);
 
               // Check if the PR branch name matches the required pattern
