@@ -118,7 +118,7 @@ jobs:
       # release-plz-action
       - name: Install release-plz binary
         if: ${{ steps.cmd-release-plz-set-version.outputs.version }}
-        uses: baptiste0928/cargo-install@904927dbe77864e0f2281519fe9d5bd097a220b3 # v3
+        uses: baptiste0928/cargo-install@91c5da15570085bcde6f4d7aed98cb82d6769fd3 # v3
         with:
           crate: release-plz
           version: 0.3.98
