@@ -113,7 +113,7 @@ jobs:
 
       - name: Install Rust toolchain
         if: ${{ steps.cmd-release-plz-set-version.outputs.version }}
-        uses: actions-rust-lang/setup-rust-toolchain@11df97af8e8102fd60b60a77dfbf58d40cd843b8 # v1
+        uses: actions-rust-lang/setup-rust-toolchain@9399c7bb15d4c7d47b27263d024f0a4978346ba4 # v1
 
       # release-plz-action
       - name: Install release-plz binary
